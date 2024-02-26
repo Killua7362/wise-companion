@@ -3,3 +3,4 @@
 - [x] mistral llm with static quantization and running the inference on onnx compiler with tensorrt runtime
 - [x] deployed on docker with gcp and kubernetes
 - [x] Replacing mistral with gemma
+- [x] Adding bark and whisper
