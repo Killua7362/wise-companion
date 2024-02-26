@@ -6,6 +6,9 @@ from langchain.memory import ConversationBufferMemory
 from pyspark.sql import SparkSession
 from langchain_community.vectorstores import ElasticsearchStore
 from optimum.onnxruntime import ORTModelForCausalLM
+import sounddevice as sd
+from transformers import WhisperProcessor, WhisperForConditionalGeneration,pipeline
+
 import os
 
 from utils.data import get_data
@@ -62,5 +65,22 @@ memory = ConversationBufferMemory(
 ) 
 
 chain = get_final_chain(sane_pipeline,insane_pipeline,memory,vectorstore)
+sampling_rate = 44100
+duration = 3
 
-print(llm_query("what is the nearest restaurant to LA",chain,memory))
+input_audio = sd.rec(int(duration*sampling_rate),sampling_rate=sampling_rate,channels=2)
+sd.wait()
+
+processor = WhisperProcessor.from_pretrained("openai/whisper-large")
+model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-large")
+
+encoded_audio = processor(input_audio,sampling_rate=sampling_rate).input_featurers
+res_text = model.generate(encoded_audio)
+input_string = processor.batch_decode(res_text,skip_special_tokens=True)
+
+res_text = llm_query(input_string,chain,memory)
+
+pipe = pipeline("text-to-speech",model='suno/bark-small')
+output = pipe(res_text)
+
+#output has audio and sampling rate
